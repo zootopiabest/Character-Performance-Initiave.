@@ -1,8 +1,9 @@
 import { SCENARIOS, DEFAULT_ROLEPLAY } from './scenarios.js';
-import { uid, parseCharacter, buildMessages, planRuns, estimateCost, toMarkdownExport, summarize } from './core.js';
+import { uid, parseCharacter, includedCard, CARD_FIELDS, buildMessages, planRuns, estimateCost, toMarkdownExport, summarize } from './core.js';
 import { loadModelCatalog } from './openrouter.js';
 import { completeViaProvider, normalizeBaseUrl, DEEPSEEK_MODELS } from './providers.js';
 import { RELEASES, APP_VERSION } from './releases.js';
+import { parseCharacterFile } from './png.js';
 
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -20,10 +21,10 @@ $('roleplay-prompt').value = DEFAULT_ROLEPLAY;
 $('releases-list').innerHTML=RELEASES.map((release,i)=>`<details class="release-entry" ${i===0?'open':''}><summary>v${esc(release.version)} · ${esc(release.title)} <time>${esc(release.date)}</time></summary><ul>${release.changes.map(change=>`<li>${esc(change)}</li>`).join('')}</ul></details>`).join('');
 
 
+const CARD_INPUTS = {name:'character-name',profile:'character-profile',personality:'character-personality',depth:'character-depth',examples:'character-examples',system:'character-system'};
 const readCard = () => ({
-  name: $('character-name').value.trim(), profile: $('character-profile').value.trim(),
-  depth: $('character-depth').value.trim(), examples: $('character-examples').value.trim(),
-  system: $('character-system').value.trim()
+  ...Object.fromEntries(CARD_FIELDS.map(key => [key, $(CARD_INPUTS[key]).value.trim()])),
+  enabled:Object.fromEntries(CARD_FIELDS.map(key=>[key, Boolean(document.querySelector(`[data-include="${key}"]`)?.checked)]))
 });
 const readSettings = () => ({
   repetitions: clamp(Math.floor(Number($('repetitions').value)),1,20,2),
@@ -45,16 +46,18 @@ function toast(message, isError = false) {
 }
 
 function hydrateCard(card) {
-  for (const [key,field] of Object.entries({name:'character-name',profile:'character-profile',depth:'character-depth',examples:'character-examples',system:'character-system'})) {
-    $(field).value = card[key] || '';
+  for (const key of CARD_FIELDS) {
+    $(CARD_INPUTS[key]).value = card[key] || '';
+    document.querySelector(`[data-include="${key}"]`).checked=true;
   }
   updatePlan();
-  toast('Dossier imported. Review the extracted fields before running.');
+  $('field-explorer').open=true;
+  toast('Dossier imported. Choose and edit fields before running.');
 }
 
 $('card-file').addEventListener('change', async e => {
   const file = e.target.files?.[0]; if (!file) return;
-  try { hydrateCard(parseCharacter(await file.text())); }
+  try { hydrateCard(await parseCharacterFile(file)); }
   catch (err) { toast(`Could not import file: ${err.message}`,true); }
   e.target.value = '';
 });
@@ -62,7 +65,8 @@ $('toggle-paste').addEventListener('click', () => $('paste-wrap').classList.togg
 $('parse-raw').addEventListener('click', () => {
   const value = $('raw-import').value;
   if (!value.trim()) return toast('Paste a card export first.',true);
-  hydrateCard(parseCharacter(value));
+  try {hydrateCard(parseCharacter(value));}
+  catch(err){toast(`Could not parse pasted card: ${err.message}`,true);}
 });
 $('toggle-key').addEventListener('click', () => {
   const key=$('api-key'); const show=key.type==='password';
@@ -249,6 +253,15 @@ function updatePlan(){
   const card=readCard(), settings=readSettings(), selected=selectedScenarios();
   const n=state.models.length * selected.length * settings.repetitions;
   $('request-count').textContent=fmtCount(n);
+  let active=0;
+  for(const key of CARD_FIELDS){
+    const included=card.enabled[key], text=card[key];
+    const row=document.querySelector(`[data-field-entry="${key}"]`);
+    row.classList.toggle('excluded',!included);
+    $(`field-length-${key}`).textContent=`${fmtCount(text.length)} chars${!included?' · excluded':''}`;
+    if(included && text) active++;
+  }
+  $('field-count').textContent=`${active} populated fields included`; 
   const estimate=estimateCost({models:state.models,scenarios:selected,repetitions:settings.repetitions,card,roleplay:settings.roleplay,catalog:state.catalog});
   $('cost-estimate').textContent=estimate.unpriced===0 && state.models.length ? `≈${fmtUSD(estimate.total)}` : 'Unknown';
   $('cost-help').textContent=estimate.unpriced ? `${estimate.unpriced} model instance(s) lack pricing. OpenRouter prices come from the catalog; custom prices are user supplied. Direct DeepSeek is unpriced here. Actual charges vary.` : 'Estimate assumes ~350 output tokens per response; actual length, provider pricing and tokens can differ.';
@@ -259,9 +272,11 @@ function updatePlan(){
   }
   $('request-preview').textContent=preview;
 }
-for(const id of ['character-name','character-profile','character-depth','character-examples','character-system','repetitions','concurrency','temperature','max-tokens','roleplay-prompt']){
+for(const id of ['character-name','character-profile','character-personality','character-depth','character-examples','character-system','repetitions','concurrency','temperature','max-tokens','roleplay-prompt']){
   $(id).addEventListener('input',updatePlan);
 }
+
+document.querySelectorAll('[data-include]').forEach(input=>input.addEventListener('change',updatePlan));
 
 let currentExport = null;
 function resultsForScenario() {
@@ -329,7 +344,8 @@ $('export-md').addEventListener('click',()=>{
 });
 
 function validate(card,models,selected,settings){
-  if(!card.profile)return 'Import or paste a character profile first.';
+  const chosen=includedCard(card);
+  if(!chosen.profile && !chosen.personality)return 'Include a description or personality before starting.';
   if(!models.length)return 'Add at least one model.';
   if(!selected.length)return 'Select at least one test scenario.';
   if(models.some(m=>m.provider==='openrouter')&&!$('api-key').value.trim())return 'Enter your OpenRouter API key for OpenRouter models.';
@@ -349,7 +365,8 @@ async function runAll(){
   if(issue)return toast(issue,true);
   const count=models.length*selected.length*settings.repetitions;
   if(count>500)return toast('Please reduce the test size to 500 requests or fewer per run.',true);
-  state.snapshot={createdAt:new Date().toISOString(),appVersion:APP_VERSION,card,models,scenarios:selected,settings};
+  const sentCard=includedCard(card); // Excluded text is never exported or sent.
+  state.snapshot={createdAt:new Date().toISOString(),appVersion:APP_VERSION,card:sentCard,models,scenarios:selected,settings};
   state.runs=planRuns({models,scenarios:selected,repetitions:settings.repetitions});
   state.activeScenario=selected[0].id;
   state.controller=new AbortController();state.running=true;
@@ -370,7 +387,7 @@ async function runAll(){
         const instance=modelById.get(run.modelInstanceId);
         const connection=connections.get(instance.connectionId);
         const output=await completeViaProvider({provider:instance.provider,baseUrl:connection?.baseUrl,apiKey:instance.provider==='custom'?connection?.apiKey:secrets[instance.provider],modelId:run.modelId,
-          messages:buildMessages(card,{prompt:run.scenarioPrompt},settings.roleplay),
+          messages:buildMessages(sentCard,{prompt:run.scenarioPrompt},settings.roleplay),
           temperature:settings.temperature,maxTokens:settings.maxTokens,
           signal:state.controller.signal,supportsTemperature});
         Object.assign(run,output,{status:'complete'});

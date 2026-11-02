@@ -1,6 +1,16 @@
 /** Keep release notes here: new versions appear first and each version is independently collapsible. */
-export const APP_VERSION='0.2.0';
+export const APP_VERSION='0.3.0';
 export const RELEASES=[
+  {
+    version:'0.3.0',title:'Real card intake & field-by-field controls',date:'2026-11-02',
+    changes:[
+      'V2 and V3 character-card JSON import, plus PNG card import from embedded chara/ccv3 metadata (tEXt, zTXt and iTXt).',
+      'Import allowlist: character name, description, personality, depth/post-history instructions, example dialogue and character system prompt only. Greetings, scenario, creator notes, tags and lorebook never enter the test.',
+      'Collapsible editable field explorer with independent include/exclude switches. Uncheck example dialogue, or any field, without deleting it.',
+      'Live request preview and price estimate honor the same field switches as execution. Export snapshots omit excluded field contents.',
+      'Helpful errors for images with stripped card metadata. No image is uploaded or decoded as visible pixels.'
+    ]
+  },
   {
     version:'0.2.0',title:'Provider independence & deployment',date:'2026-11-02',
     changes:[

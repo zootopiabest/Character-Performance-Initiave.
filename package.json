@@ -1,6 +1,6 @@
 {
   "name": "character-performance-initiative",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Character roleplay model benchmark with side-by-side comparisons and BYOK OpenRouter, DeepSeek and custom OpenAI-compatible API calls.",

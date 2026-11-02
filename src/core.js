@@ -2,76 +2,106 @@ import { DEFAULT_ROLEPLAY } from './scenarios.js';
 
 export const uid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const normalize = s => String(s ?? '').trim();
+/** This is an allowlist, not a list of fields to reject after importing the whole card. */
+export const CARD_FIELDS = ['name', 'profile', 'personality', 'depth', 'examples', 'system'];
 const aliases = {
   name: ['name', 'char_name', 'character_name', 'display_name'],
-  description: ['description', 'char_persona', 'character_description', 'profile', 'character_profile', 'persona', 'character_persona'],
+  profile: ['description', 'char_persona', 'character_description', 'profile', 'character_profile', 'persona', 'character_persona', 'main_prompt'],
   personality: ['personality', 'personality_summary', 'traits'],
-  depth: ['depth_prompt', 'depth_prompt_text', 'post_history_instructions', 'post_history', 'depth', 'character_note', 'character_notes'],
-  examples: ['mes_example', 'example_dialogue', 'example_messages', 'examples', 'sample_dialogue'],
-  system: ['system_prompt', 'system', 'system_instructions']
+  depth: ['post_history_instructions', 'depth_prompt', 'depth_prompt_text', 'post_history', 'depth'],
+  examples: ['mes_example', 'example_dialogue', 'example_messages', 'message_example', 'examples', 'sample_dialogue'],
+  system: ['system_prompt', 'system_instructions', 'system']
 };
-const getField = (data, keys) => {
+function getField(data, keys) {
   for (const key of keys) {
     const value = data?.[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
     if (Array.isArray(value) && value.length && value.every(x => typeof x === 'string')) return value.join('\n').trim();
   }
   return '';
-};
-const allObjects = obj => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
-  const children = ['data', 'character', 'card', 'content', 'character_data']
-    .map(k => obj[k]).filter(x => x && typeof x === 'object' && !Array.isArray(x));
-  return [obj, ...children.flatMap(allObjects)];
-};
+}
+function allObjects(obj, depth=0) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj) || depth > 4) return [];
+  // Prefer V2/V3 canonical data to legacy root fields when both are present.
+  const nested = ['data', 'character', 'card', 'content', 'character_data']
+    .flatMap(k => allObjects(obj[k], depth+1));
+  return [...nested, obj];
+}
 const pick = (objects, key) => objects.map(o => getField(o, aliases[key])).find(Boolean) ?? '';
-
+const emptyCard = () => Object.fromEntries(CARD_FIELDS.map(k => [k, '']));
+const cleanTitle = s => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const markdownField = title => {
+  const t = cleanTitle(title);
+  if (/^(name|character name)$/.test(t)) return 'name';
+  if (/^(description|profile|character description|character profile|main prompt|main prompt description field|character persona)$/.test(t)) return 'profile';
+  if (/^(personality|personality summary)$/.test(t)) return 'personality';
+  if (/^(depth prompt|post history instructions|post history|character depth prompt)$/.test(t)) return 'depth';
+  if (/^(example dialogue|example messages|sample dialogue|message example|mes example|examples)$/.test(t)) return 'examples';
+  if (/^(system prompt|system instructions|character system prompt)$/.test(t)) return 'system';
+  // Explicitly forbidden fields and all unknown named headings are not copied automatically.
+  return null;
+};
 function markdownToFields(raw) {
-  const headings = [...raw.matchAll(/^#{1,4}\s+(.+?)\s*$/gm)];
-  const sections = headings.map((m, i) => ({
-    title: m[1].toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
-    content: raw.slice(m.index + m[0].length, headings[i + 1]?.index ?? raw.length).trim()
-  }));
-  const section = (...terms) => sections.filter(s => terms.some(t => s.title === t)).map(s => s.content).filter(Boolean).join('\n\n');
-  const profileSections = sections.filter(s => !/(scenario|greeting|first message|first mes|example dialogue|example messages|sample dialogue|depth prompt|post history|system prompt|creator notes|metadata|tags)/.test(s.title));
-  const profile = profileSections.length ? profileSections.map(s => `## ${s.title}\n${s.content}`).join('\n\n') : raw;
-  return {
-    name: (/^(?:\*\*)?name(?:\*\*)?\s*:\s*(.+)$/mi.exec(raw)?.[1] ?? '').trim(),
-    profile: profile.trim(),
-    depth: section('depth prompt', 'post history instructions', 'character note'),
-    examples: section('example dialogue', 'example messages', 'sample dialogue'),
-    system: section('system prompt', 'system instructions')
-  };
+  const card = emptyCard();
+  const headings = [...raw.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)];
+  if (!headings.length) {
+    // A simple prose profile is permitted; a broken JSON export should not become a profile.
+    if (/^[\[{]\s*["{]/.test(raw)) throw new Error('Invalid JSON card. Correct the JSON or paste a plain-text profile.');
+    card.profile = raw.trim();
+    return card;
+  }
+  let fallback = [];
+  headings.forEach((m,i) => {
+    const title=m[1];
+    const content=raw.slice(m.index+m[0].length,headings[i+1]?.index??raw.length).trim();
+    const key=markdownField(title);
+    if (key && content) card[key]=[card[key],content].filter(Boolean).join('\n\n');
+    else if (!key && /^(basic information|physical description|appearance|style|quirks and mannerisms|likes|dislikes|background|relationships|build|occupation|abilities|backstory|behavior|mannerisms|character)$/.test(cleanTitle(title)) && content) {
+      fallback.push(`## ${title}\n${content}`);
+    }
+  });
+  if (fallback.length) card.profile = [card.profile,...fallback].filter(Boolean).join('\n\n');
+  // Do not copy unknown sections: they might be greetings, creator notes, or other metadata.
+  const name = /^(?:\*\*)?Name(?:\*\*)?\s*:\s*(.+)$/mi.exec(card.profile)?.[1];
+  if (!card.name && name) card.name=name.trim();
+  return card;
 }
 
-/** Accepts plain text, markdown and common character-export JSON shapes.
- * Critically: scenario, greeting and first_mes are never imported into the test context.
+/** Parse Character Card V1/V2/V3 and common JSON/Markdown exports by field allowlist.
+ * Never import greetings, scenarios, creator notes, tags, extensions or lorebooks.
  */
 export function parseCharacter(raw) {
   const str = normalize(raw);
-  if (!str) return { name: '', profile: '', depth: '', examples: '', system: '' };
+  if (!str) return emptyCard();
   let data;
   try { data = JSON.parse(str); } catch { return markdownToFields(str); }
   const objects = allObjects(data);
-  if (!objects.length) return markdownToFields(str);
-  const description = pick(objects, 'description');
-  const personality = pick(objects, 'personality');
-  const profile = description && personality && !description.includes(personality)
-    ? `${description}\n\nPersonality:\n${personality}` : description || personality;
-  return {
-    name: pick(objects, 'name'), profile,
-    depth: pick(objects, 'depth'), examples: pick(objects, 'examples'), system: pick(objects, 'system')
-  };
+  if (!objects.length) throw new Error('This JSON does not contain a character card object.');
+  const result = Object.fromEntries(CARD_FIELDS.map(key => [key, pick(objects,key)]));
+  if (!CARD_FIELDS.some(key=>key!=='name' && result[key])) {
+    throw new Error('No supported roleplay fields were found. Please check the card format.');
+  }
+  return result;
+}
+
+/** Returns only fields intentionally selected for API requests and saved run exports. */
+export function includedCard(card) {
+  const enabled = card?.enabled || {};
+  const out = emptyCard();
+  for (const key of CARD_FIELDS) out[key] = enabled[key] === false ? '' : normalize(card?.[key]);
+  return out;
 }
 
 export function buildMessages(card, scenario, roleplay = DEFAULT_ROLEPLAY) {
-  if (!normalize(card.profile)) throw new Error('A character profile is required.');
+  const selected = includedCard(card);
+  if (!selected.profile && !selected.personality) throw new Error('Include a description or personality to run the benchmark.');
   if (!normalize(scenario.prompt)) throw new Error('The scenario prompt is empty.');
   const blocks = [normalize(roleplay)];
-  if (normalize(card.system)) blocks.push(`[CHARACTER SYSTEM PROMPT]\n${normalize(card.system)}`);
-  blocks.push(`[CHARACTER PROFILE]\n${normalize(card.name) ? `Name: ${normalize(card.name)}\n` : ''}${normalize(card.profile)}`);
-  if (normalize(card.depth)) blocks.push(`[DEPTH PROMPT]\n${normalize(card.depth)}`);
-  if (normalize(card.examples)) blocks.push(`[EXAMPLE DIALOGUE]\n${normalize(card.examples)}`);
+  if (selected.system) blocks.push(`[CHARACTER SYSTEM PROMPT]\n${selected.system}`);
+  const profile = [selected.name ? `Name: ${selected.name}` : '',selected.profile,selected.personality ? `[PERSONALITY]\n${selected.personality}` : ''].filter(Boolean).join('\n\n');
+  blocks.push(`[CHARACTER PROFILE]\n${profile}`);
+  if (selected.depth) blocks.push(`[DEPTH PROMPT]\n${selected.depth}`);
+  if (selected.examples) blocks.push(`[EXAMPLE DIALOGUE]\n${selected.examples}`);
   return [
     { role: 'system', content: blocks.filter(Boolean).join('\n\n') },
     { role: 'user', content: normalize(scenario.prompt) }
@@ -91,7 +121,8 @@ export function planRuns({ models, scenarios, repetitions }) {
 }
 
 export function estimateCost({ models, scenarios, repetitions, card, roleplay, catalog, expectedOutputTokens = 350 }) {
-  const prompt = (roleplay + card.profile + card.depth + card.examples + card.system).length / 4 + 40;
+  const selected=includedCard(card);
+  const prompt = (roleplay + CARD_FIELDS.map(k=>selected[k]).join('')).length / 4 + 40;
   const byId = new Map(catalog.map(x => [x.id, x]));
   let total = 0;
   let unpriced = 0;

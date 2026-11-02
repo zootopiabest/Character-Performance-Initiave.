@@ -43,5 +43,5 @@ test('custom model pricing contributes to estimate and exports never require cre
   assert.equal(cost.unpriced,0);assert.ok(cost.total>0);
   const runs=planRuns({models,scenarios:[{id:'s',title:'Test',prompt:'Hi'}],repetitions:2});assert.equal(runs[0].provider,'custom');
   assert.equal(runs[0].connectionName,'Local');
-  assert.ok(RELEASES.length>=2);assert.equal(RELEASES[0].version,'0.2.0');
+  assert.ok(RELEASES.length>=2);assert.equal(RELEASES[0].version,'0.3.0');
 });

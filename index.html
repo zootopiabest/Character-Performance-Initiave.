@@ -16,7 +16,7 @@
         <span class="seal" aria-hidden="true">C<span>PI</span></span>
         <div class="identity-text"><strong>CHARACTER PERFORMANCE INITIATIVE</strong><small>DIVISION OF SYNTHETIC PERSONALITY OVERSIGHT</small></div>
       </div>
-      <span class="top-tag"><span class="live-dot"></span> INDEPENDENT EVALUATION LAB · V0.2.0</span>
+      <span class="top-tag"><span class="live-dot"></span> INDEPENDENT EVALUATION LAB · V0.3.0</span>
     </header>
 
     <main>
@@ -34,22 +34,43 @@
       <div class="workspace">
         <div class="workspace-main">
           <section class="panel" id="character-panel">
-            <div class="panel-heading"><div class="section-nr">01</div><div><p class="eyebrow">SUBJECT INTAKE</p><h2>Character dossier</h2><p class="subtext">Only the character profile, depth prompt, example dialogue and system prompt go into test requests. Greetings and scenarios stay out.</p></div></div>
+            <div class="panel-heading"><div class="section-nr">01</div><div><p class="eyebrow">SUBJECT INTAKE</p><h2>Character dossier</h2><p class="subtext">Import V2/V3 JSON or PNG cards. Select exactly which character fields enter each test. Greetings, scenarios and creator notes never enter the prompt.</p></div></div>
             <div class="import-row">
-              <label class="file-button" for="card-file">↑ &nbsp; Import .json / .md / .txt</label><input id="card-file" type="file" accept=".json,.md,.txt,application/json,text/plain,text/markdown" hidden />
+              <label class="file-button" for="card-file">↑ &nbsp; Import .png / .json / .md / .txt</label><input id="card-file" type="file" accept=".png,.json,.md,.txt,image/png,application/json,text/plain,text/markdown" hidden />
               <button class="text-button" id="toggle-paste" type="button">Paste raw card instead</button>
             </div>
             <div id="paste-wrap" class="hidden field"><label for="raw-import">Raw character export</label><textarea id="raw-import" rows="5" placeholder="Paste a JSON character export or Markdown profile…"></textarea><button type="button" class="secondary-btn" id="parse-raw">Extract allowed fields</button></div>
-            <div class="fields-grid">
-              <div class="field"><label for="character-name">Character name <span>optional</span></label><input id="character-name" placeholder="e.g. Agnes Tesla" autocomplete="off" /></div>
-              <div class="field"><label for="character-profile">Profile <span>required</span></label><textarea id="character-profile" rows="9" placeholder="Appearance, personality, motivations, relationships, background…"></textarea></div>
-            </div>
-            <details class="details-block"><summary>Additional card fields <span class="dim">(depth, examples, system)</span></summary>
-              <div class="field"><label for="character-depth">Depth prompt</label><textarea id="character-depth" rows="4" placeholder="Optional additional character instructions…"></textarea></div>
-              <div class="field"><label for="character-examples">Example dialogue</label><textarea id="character-examples" rows="5" placeholder="Optional character dialogue examples…"></textarea></div>
-              <div class="field"><label for="character-system">Character system prompt</label><textarea id="character-system" rows="4" placeholder="Optional card-defined system instructions…"></textarea></div>
+            <details class="details-block field-explorer" id="field-explorer" open>
+              <summary>Editable field explorer <span class="dim" id="field-count">6 allowed fields</span></summary>
+              <p class="input-help explorer-intro">Uncheck a field to exclude it from API requests, cost estimates and run exports. Expand any field to edit it. The source file is never modified.</p>
+              <div class="field-explorer-list">
+                <section class="field-entry" data-field-entry="name">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="name" checked /><span>Include</span></label><strong>Character name</strong><small id="field-length-name">0 chars</small></div>
+                  <details open><summary>Edit character name</summary><div class="field"><input id="character-name" placeholder="Character name" autocomplete="off" /><p class="input-help">Name included in the request, not treated as a standalone description.</p></div></details>
+                </section>
+                <section class="field-entry" data-field-entry="profile">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="profile" checked /><span>Include</span></label><strong>Description / profile</strong><small id="field-length-profile">0 chars</small></div>
+                  <details open><summary>Edit description / profile</summary><div class="field"><textarea id="character-profile" rows="10" placeholder="Description / profile…"></textarea><p class="input-help">Description field from V2/V3 or imported Markdown.</p></div></details>
+                </section>
+                <section class="field-entry" data-field-entry="personality">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="personality" checked /><span>Include</span></label><strong>Personality</strong><small id="field-length-personality">0 chars</small></div>
+                  <details ><summary>Edit personality</summary><div class="field"><textarea id="character-personality" rows="5" placeholder="Personality…"></textarea><p class="input-help">Separate V2 personality field; not silently folded into description.</p></div></details>
+                </section>
+                <section class="field-entry" data-field-entry="depth">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="depth" checked /><span>Include</span></label><strong>Depth prompt / post-history instructions</strong><small id="field-length-depth">0 chars</small></div>
+                  <details ><summary>Edit depth prompt / post-history instructions</summary><div class="field"><textarea id="character-depth" rows="5" placeholder="Depth prompt / post-history instructions…"></textarea><p class="input-help">May contain instructions intended for a different prompt position; CPI labels it explicitly.</p></div></details>
+                </section>
+                <section class="field-entry" data-field-entry="examples">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="examples" checked /><span>Include</span></label><strong>Example dialogue</strong><small id="field-length-examples">0 chars</small></div>
+                  <details ><summary>Edit example dialogue</summary><div class="field"><textarea id="character-examples" rows="6" placeholder="Example dialogue…"></textarea><p class="input-help">Uncheck to run without examples while preserving them in the editor.</p></div></details>
+                </section>
+                <section class="field-entry" data-field-entry="system">
+                  <div class="field-entry-head"><label class="include-switch"><input type="checkbox" data-include="system" checked /><span>Include</span></label><strong>Character system prompt</strong><small id="field-length-system">0 chars</small></div>
+                  <details ><summary>Edit character system prompt</summary><div class="field"><textarea id="character-system" rows="5" placeholder="Character system prompt…"></textarea><p class="input-help">Additional card instructions, not the benchmark baseline prompt.</p></div></details>
+                </section>
+              </div>
             </details>
-            <div class="panel-footer-note"><span class="tiny-dot"></span> Imported content is editable before any request is made. Nothing is uploaded until you start a test.</div>
+            <div class="panel-footer-note"><span class="tiny-dot"></span> Only allowlisted, checked fields are included in prompts. Nothing is uploaded until you start a test; excluded fields remain private to the editor.</div>
           </section>
 
           <section class="panel" id="scenarios-panel">

@@ -129,3 +129,22 @@ footer {display:flex;justify-content:space-between;gap:20px;border-top:1px solid
 .model-instance-main .model-origin{color:var(--mint);font-size:9px;display:block;margin-top:2px;}
 .model-instance-main .price-label{color:#b1c7bb;font-size:9px;margin-top:2px;display:block;}
 @media(max-width:460px){.catalog-item{flex-direction:column;}.catalog-item button{align-self:flex-end;}.whats-new{padding:14px;}}
+
+/* CPI v0.3: independently collapsible, editable character-field allowlist. */
+.field-explorer { padding-bottom:5px; }
+.field-explorer .explorer-intro { margin:0 0 14px; }
+.field-explorer-list { display:flex;flex-direction:column;gap:8px; }
+.field-entry { border:1px solid #314958;border-radius:10px;background:#101f2e;padding:11px 12px; }
+.field-entry-head { display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-width:0; }
+.field-entry-head strong {font-size:12px;color:#dbeaf0;flex:1;min-width:125px;}
+.field-entry-head small {font-size:10px;color:var(--soft);white-space:nowrap;}
+.include-switch {display:inline-flex;gap:6px;align-items:center;white-space:nowrap;font-size:11px;color:var(--mint);font-weight:650;cursor:pointer;}
+.include-switch input {accent-color:#6fcbb5;width:16px;height:16px;margin:0;}
+.field-entry.excluded {opacity:.60;border-style:dashed;}
+.field-entry.excluded .include-switch {color:var(--soft);}
+.field-entry details {margin-top:10px;padding-top:9px;border-top:1px solid #294255;}
+.field-entry details summary {cursor:pointer;font-size:11px;color:#9abbd0;}
+.field-entry details[open] summary {margin-bottom:12px;}
+.field-entry .field {margin:0;}
+.field-entry .field textarea,.field-entry .field input {font-size:12px;}
+@media(max-width:520px) {.field-entry-head {gap:8px;}.field-entry-head strong {min-width:100px;}}

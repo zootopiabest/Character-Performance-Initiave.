@@ -4,8 +4,10 @@
 
 Standalone browser-based benchmark for testing how different LLMs portray the **same character card** in **identical, independent roleplay scenarios**. Not affiliated with Card Analyzer. No build step and no backend required for the UI.
 
-## What's in v0.2.0
-- Character profile import: JSON, Markdown, text; extracts profile, depth prompt, example dialogue and character system prompt only. Deliberately excludes card greetings/scenarios.
+## What's in v0.3.0
+- Character-card import: V1/V2/V3 JSON, V2/V3 PNG embedded metadata, and Markdown/text. Explicitly extracts name, description, personality, depth/post-history prompt, example dialogue and character system prompt only. Deliberately excludes greetings, card scenario, creator notes, tags, and lorebook.
+- **Editable field explorer:** collapse/expand every field independently and uncheck Include to exclude from prompts. Unchecking example dialogue does not erase it. The sample request, cost estimate, and run exports honor exclusions.
+- PNG metadata import accepts `chara`/`ccv3` embedded in tEXt/zTXt/iTXt chunks. Plain images without card metadata cannot be reconstructed into card data.
 - 12 included scenarios, custom scenarios, customizable lean roleplay baseline, and exact prompt preview.
 - Multiple model instances (duplicates allowed), configurable repetitions/temperature/output tokens/concurrency.
 - **OpenRouter browser** with searchable live catalog, developer filter, input and output prices per 1M tokens, sort options and context windows.
