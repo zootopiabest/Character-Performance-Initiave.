@@ -1,0 +1,14 @@
+{
+  "name": "character-performance-initiative",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Character roleplay model benchmark with side-by-side comparisons and BYOK OpenRouter, DeepSeek and custom OpenAI-compatible API calls.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

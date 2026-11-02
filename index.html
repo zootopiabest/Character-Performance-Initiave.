@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="The Character Performance Initiative: controlled, side-by-side roleplay model testing." />
+  <title>CPI — Character Performance Initiative</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="src/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="identity">
+        <span class="seal" aria-hidden="true">C<span>PI</span></span>
+        <div class="identity-text"><strong>CHARACTER PERFORMANCE INITIATIVE</strong><small>DIVISION OF SYNTHETIC PERSONALITY OVERSIGHT</small></div>
+      </div>
+      <span class="top-tag"><span class="live-dot"></span> INDEPENDENT EVALUATION LAB · V0.2.0</span>
+    </header>
+
+    <main>
+      <details class="panel whats-new" id="whats-new"><summary>✦ What's New <span class="dim">· Release notes by version</span></summary><div id="releases-list" class="releases-list"></div></details>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">CASE FILE 001 / MODEL BEHAVIOR</p>
+          <h1>Character integrity.<br /><em>Under examination.</em></h1>
+          <p>Put one character in front of multiple models, give each the same situations, and see who actually understands the assignment. No invented scores. Just the evidence.</p>
+          <div class="hero-badges"><span>◈ Zero grading bias</span><span>◈ Bring your own API key</span><span>◈ Identical test prompts</span></div>
+        </div>
+        <div class="hero-stamp" aria-hidden="true"><div class="stamp-corner">CPI / 2026</div><div class="stamp-mark">C<span>P</span>I</div><div class="stamp-caption">PERSONALITY ASSURANCE<br />FIELD OPERATIONS UNIT</div><div class="stamp-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      </section>
+
+      <div class="workspace">
+        <div class="workspace-main">
+          <section class="panel" id="character-panel">
+            <div class="panel-heading"><div class="section-nr">01</div><div><p class="eyebrow">SUBJECT INTAKE</p><h2>Character dossier</h2><p class="subtext">Only the character profile, depth prompt, example dialogue and system prompt go into test requests. Greetings and scenarios stay out.</p></div></div>
+            <div class="import-row">
+              <label class="file-button" for="card-file">↑ &nbsp; Import .json / .md / .txt</label><input id="card-file" type="file" accept=".json,.md,.txt,application/json,text/plain,text/markdown" hidden />
+              <button class="text-button" id="toggle-paste" type="button">Paste raw card instead</button>
+            </div>
+            <div id="paste-wrap" class="hidden field"><label for="raw-import">Raw character export</label><textarea id="raw-import" rows="5" placeholder="Paste a JSON character export or Markdown profile…"></textarea><button type="button" class="secondary-btn" id="parse-raw">Extract allowed fields</button></div>
+            <div class="fields-grid">
+              <div class="field"><label for="character-name">Character name <span>optional</span></label><input id="character-name" placeholder="e.g. Agnes Tesla" autocomplete="off" /></div>
+              <div class="field"><label for="character-profile">Profile <span>required</span></label><textarea id="character-profile" rows="9" placeholder="Appearance, personality, motivations, relationships, background…"></textarea></div>
+            </div>
+            <details class="details-block"><summary>Additional card fields <span class="dim">(depth, examples, system)</span></summary>
+              <div class="field"><label for="character-depth">Depth prompt</label><textarea id="character-depth" rows="4" placeholder="Optional additional character instructions…"></textarea></div>
+              <div class="field"><label for="character-examples">Example dialogue</label><textarea id="character-examples" rows="5" placeholder="Optional character dialogue examples…"></textarea></div>
+              <div class="field"><label for="character-system">Character system prompt</label><textarea id="character-system" rows="4" placeholder="Optional card-defined system instructions…"></textarea></div>
+            </details>
+            <div class="panel-footer-note"><span class="tiny-dot"></span> Imported content is editable before any request is made. Nothing is uploaded until you start a test.</div>
+          </section>
+
+          <section class="panel" id="scenarios-panel">
+            <div class="panel-heading"><div class="section-nr">03</div><div><p class="eyebrow">CONTROLLED STIMULI</p><h2>Testing scenarios</h2><p class="subtext">Each scenario is one user message. The character isn't told which qualities you're testing.</p></div></div>
+            <div class="scenario-actions"><span id="scenario-selected-count">0 selected</span><div><button type="button" class="text-button" id="select-all">Select all</button><button type="button" class="text-button" id="clear-scenarios">Clear</button></div></div>
+            <div id="scenario-list" class="scenario-list"></div>
+            <details class="details-block custom-details"><summary>+ Add a custom scenario</summary>
+              <div class="field"><label for="custom-title">Test name</label><input id="custom-title" placeholder="e.g. An ethical disagreement" /></div>
+              <div class="field"><label for="custom-prompt">User message</label><textarea id="custom-prompt" rows="4" placeholder="Write the user's action or dialogue. Avoid describing what the character should do."></textarea></div>
+              <button type="button" id="add-scenario" class="secondary-btn">Add to test suite</button>
+            </details>
+          </section>
+        </div>
+
+        <aside class="workspace-side">
+          <section class="panel" id="models-panel">
+            <div class="panel-heading"><div class="section-nr">02</div><div><p class="eyebrow">TEST SUBJECTS</p><h2>Model lineup</h2><p class="subtext">Mix OpenRouter, direct DeepSeek, and custom API endpoints. Duplicates are intentional.</p></div></div>
+            <div class="field"><label for="api-key">OpenRouter API key</label><div class="key-wrap"><input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-v1-…" /><button id="toggle-key" type="button" aria-label="Show API key">Show</button></div><p class="input-help">Held only in this tab’s memory, never stored or exported. Requests go directly to OpenRouter.</p></div>
+            <button type="button" class="secondary-btn catalog-btn" id="load-catalog">↻ &nbsp; Load live OpenRouter catalog</button>
+            <details class="details-block model-browser" id="model-browser"><summary>Browse all OpenRouter models <span class="dim">· Live pricing</span></summary>
+              <div class="field"><label for="catalog-search">Search catalog</label><input type="search" id="catalog-search" placeholder="Model, developer, or ID" autocomplete="off" /></div>
+              <div class="setting-grid">
+                <div class="field"><label for="catalog-sort">Sort by</label><select id="catalog-sort"><option value="name">Name</option><option value="input">Cheapest input</option><option value="output">Cheapest output</option><option value="context">Largest context</option></select></div>
+                <div class="field"><label for="catalog-provider">Developer</label><select id="catalog-provider"><option value="">All developers</option></select></div>
+              </div>
+              <p id="catalog-count" class="input-help">Load the catalog to browse current prices.</p>
+              <div id="catalog-results" class="catalog-results"></div><button type="button" id="catalog-more" class="secondary-btn hidden">Show more models</button>
+            </details>
+            <div class="field model-search-wrap"><label for="model-search">Find or enter a model ID</label><input id="model-search" autocomplete="off" placeholder="provider/model-slug" /><div id="model-suggestions" class="model-suggestions hidden"></div></div>
+            <button type="button" class="secondary-btn" id="add-manual">+ Add typed model</button>
+            <details class="details-block direct-provider" id="deepseek-settings"><summary>DeepSeek direct <span class="dim">· Separate API key</span></summary>
+              <div class="field"><label for="deepseek-key">DeepSeek API key</label><div class="key-wrap"><input type="password" id="deepseek-key" spellcheck="false" autocomplete="off" placeholder="DeepSeek key"/><button type="button" id="toggle-deepseek-key">Show</button></div></div>
+              <div class="field"><label for="deepseek-model">DeepSeek model ID</label><input type="text" id="deepseek-model" list="deepseek-options" value="deepseek-flash" autocomplete="off"/><datalist id="deepseek-options"><option value="deepseek-flash"></option><option value="deepseek-v4-pro"></option></datalist></div>
+              <button type="button" class="secondary-btn full-btn" id="add-deepseek">+ Add DeepSeek model</button>
+              <p class="input-help">Calls DeepSeek directly, not through OpenRouter. Direct browser access may fail if DeepSeek blocks your origin (CORS). In that case, use OpenRouter or a trusted, user-controlled relay.</p>
+            </details>
+            <details class="details-block custom-api" id="custom-settings"><summary>Custom models & APIs <span class="dim">· OpenAI-compatible</span></summary>
+              <div class="field"><label for="custom-api-name">Connection label</label><input id="custom-api-name" placeholder="My local server" autocomplete="off" /></div>
+              <div class="field"><label for="custom-api-url">API base URL</label><input id="custom-api-url" type="url" placeholder="https://example.com/v1" autocomplete="off" /></div>
+              <div class="field"><label for="custom-api-key">API key (optional for local servers)</label><div class="key-wrap"><input id="custom-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Bearer key"/><button type="button" id="toggle-custom-key">Show</button></div></div>
+              <button type="button" id="save-custom-connection" class="secondary-btn full-btn">+ Save connection for this tab</button>
+              <div id="connection-list" class="connection-list"></div>
+              <div class="field"><label for="custom-connection-select">Choose connection</label><select id="custom-connection-select"><option value="">Create a connection first</option></select></div>
+              <div class="field"><label for="custom-model-id">Custom model ID</label><input id="custom-model-id" placeholder="model-name" autocomplete="off" /></div>
+              <div class="setting-grid"><div class="field"><label for="custom-input-price">Input $ / 1M <span>optional</span></label><input id="custom-input-price" type="number" min="0" step="any" placeholder="Unknown" /></div><div class="field"><label for="custom-output-price">Output $ / 1M <span>optional</span></label><input id="custom-output-price" type="number" min="0" step="any" placeholder="Unknown" /></div></div>
+              <button type="button" class="secondary-btn full-btn" id="add-custom-model">+ Add custom model</button>
+              <p class="input-help">Standard /chat/completions API only. HTTPS required outside localhost. Browser CORS and mixed-content rules still apply; CPI does not proxy requests or store credentials.</p>
+            </details>
+            <div class="roster-heading"><span>ROSTER <b id="model-count">0</b></span><span>INSTANCE LABEL / MODEL ID</span></div>
+            <div id="model-roster" class="model-roster"><p class="empty-inline">No models enlisted yet.</p></div>
+          </section>
+          <section class="panel config-panel">
+            <div class="panel-heading"><div class="section-nr">04</div><div><p class="eyebrow">EXPERIMENT PARAMETERS</p><h2>Run configuration</h2></div></div>
+            <div class="setting-grid">
+              <div class="field"><label for="repetitions">Repetitions <span>per pairing</span></label><input id="repetitions" type="number" min="1" max="20" step="1" value="2" /></div>
+              <div class="field"><label for="concurrency">Concurrency</label><input id="concurrency" type="number" min="1" max="8" step="1" value="3" /></div>
+              <div class="field"><label for="temperature">Temperature</label><input id="temperature" type="number" min="0" max="2" step="0.1" value="0.9" /></div>
+              <div class="field"><label for="max-tokens">Max output tokens</label><input id="max-tokens" type="number" min="64" max="16000" step="1" value="900" /></div>
+            </div>
+            <details class="details-block"><summary>Roleplay instructions <span class="dim">(same for all)</span></summary><div class="field"><label for="roleplay-prompt">Lean baseline prompt</label><textarea id="roleplay-prompt" rows="8"></textarea><button type="button" class="text-button reset-prompt" id="reset-roleplay">Restore default</button></div></details>
+            <details class="details-block"><summary>Inspect a sample request</summary><pre id="request-preview" class="request-preview">Complete the fields to preview the message payload.</pre></details>
+          </section>
+          <div class="launch-panel">
+            <p class="eyebrow">EXPERIMENT SUMMARY</p>
+            <div class="launch-number" id="request-count">0</div><div class="launch-label">planned API requests</div>
+            <div class="divider-line"></div>
+            <div class="estimate"><span>Estimated total</span><strong id="cost-estimate">Unknown</strong></div>
+            <p id="cost-help" class="input-help">Load the model catalog for a rough cost estimate. Actual charges depend on tokens and routing.</p>
+            <button type="button" id="start-run" class="primary-btn">▶ &nbsp; Begin examination</button>
+            <button type="button" id="stop-run" class="danger-btn hidden">■ &nbsp; Stop remaining tests</button>
+            <p class="launch-disclaimer">Billing is handled by each provider. Estimates exclude models without verified or supplied pricing. No request is made until you press Begin.</p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="results-section" id="results-section">
+        <div class="results-heading"><div><p class="eyebrow">FINDINGS / LIVE EVIDENCE</p><h2>Examination results</h2><p>Raw character responses, ungraded and side by side.</p></div><div class="export-actions"><button type="button" id="export-json" disabled class="secondary-btn">↓ Export JSON</button><button type="button" id="export-md" disabled class="secondary-btn">↓ Export Markdown</button></div></div>
+        <div class="stats-row"><div><strong id="stat-complete">0</strong><span>COMPLETED</span></div><div><strong id="stat-failed">0</strong><span>FAILED</span></div><div><strong id="stat-tokens">0</strong><span>TOKENS USED</span></div><div><strong id="stat-cost">$0.0000</strong><span>REPORTED COST</span></div></div>
+        <div id="progress-wrap" class="progress-wrap hidden"><div class="progress-meta"><span id="progress-label">Running evaluations…</span><span id="progress-value">0%</span></div><div class="progress-bar"><span id="progress-fill"></span></div></div>
+        <div id="result-tabs" class="result-tabs"></div>
+        <div id="result-grid" class="result-grid"><div class="empty-results"><div class="empty-glyph">◈</div><strong>Awaiting examination</strong><p>Add a character, enlist some models, select your scenarios, and begin. The Bureau has no findings to report. Yet.</p></div></div>
+      </section>
+    </main>
+    <footer><span>CPI · DEPARTMENT OF ENTIRELY UNOFFICIAL CHARACTER STUDIES</span><span>NO SCORES. NO PUPPETING. JUST THE RECEIPTS.</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
